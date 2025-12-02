@@ -1,0 +1,57 @@
+#!/usr/bin/env sh
+
+# Minimal gum-based UI helper
+
+cmd=$1
+shift
+
+style() {
+    fg=$1
+    shift
+    gum style --foreground "$fg" "$@"
+}
+
+case "$cmd" in
+    show:title)
+        # Big-ish title with spacing
+        gum style --border normal --border-foreground 212 --margin "1 0" --padding "0 2" --width 50 "$@"
+        ;;
+
+    show:info)
+        gum style --foreground 39 "$@"       # blue-ish
+        ;;
+
+    show:success)
+        gum style --foreground 46 "$@"        # green
+        ;;
+
+    show:warning)
+        gum style --foreground 214 "$@"      # orange
+        ;;
+
+    show:error)
+        gum style --foreground 196 "$@"       # red
+        ;;
+
+    show:choice)
+        header="$1"
+        shift
+
+        if [ -z "$header" ]; then
+            printf >&2 "Missing header.\n"
+            exit 1
+        fi
+
+        if [ $# -eq 0 ]; then
+            printf >&2 "No options provided.\n"
+            exit 1
+        fi
+
+        gum choose --limit 1 --header "$header" "$@"
+        ;;
+
+    *)
+        echo "Unknown UI command: $cmd" >&2
+        exit 1
+        ;;
+esac

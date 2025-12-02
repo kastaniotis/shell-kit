@@ -1,0 +1,122 @@
+#!/usr/bin/env sh
+
+FAIL_COUNT=0
+PASS_COUNT=0
+
+# Are we being executed as a CLI or sourced as a library?
+ASSERT_STANDALONE=0
+if [ "${0##*/}" = "assert" ]; then
+    ASSERT_STANDALONE=1
+fi
+
+# ui is required in this toolbox
+if ! command -v ui >/dev/null 2>&1; then
+    echo "assert: 'ui' command not found in PATH" >&2
+    [ "$ASSERT_STANDALONE" -eq 1 ] && exit 1
+fi
+
+pass() {
+    ui show:success "$1"
+    PASS_COUNT=$((PASS_COUNT + 1))
+    if [ "$ASSERT_STANDALONE" -eq 1 ]; then
+        exit 0
+    fi
+}
+
+fail() {
+    ui show:error "$1"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    if [ "$ASSERT_STANDALONE" -eq 1 ]; then
+        exit 1
+    fi
+}
+
+assert_eq() {
+    want=$1
+    got=$2
+    desc=$3
+
+    if [ "$want" = "$got" ]; then
+        pass "$desc"
+    else
+        fail "$desc (expected '$want', got '$got')"
+    fi
+}
+
+assert_contains() {
+    hay=$1
+    needle=$2
+    desc=$3
+
+    echo "$hay" | grep -q "$needle"
+    if [ $? -eq 0 ]; then
+        pass "$desc"
+    else
+        fail "$desc (expected to contain '$needle')"
+    fi
+}
+
+assert_success() {
+    status=$1
+    desc=$2
+
+    if [ "$status" -eq 0 ]; then
+        pass "$desc"
+    else
+        fail "$desc (exit $status)"
+    fi
+}
+
+assert_failure() {
+    status=$1
+    desc=$2
+
+    if [ "$status" -ne 0 ]; then
+        pass "$desc"
+    else
+        fail "$desc (unexpected success)"
+    fi
+}
+
+usage() {
+    ui show:title "assert – tiny test helper"
+    ui show:info "Usage:"
+    ui show:info "  assert eq EXPECTED ACTUAL DESCRIPTION"
+    ui show:info "  assert contains HAYSTACK NEEDLE DESCRIPTION"
+    ui show:info "  assert success STATUS DESCRIPTION"
+    ui show:info "  assert failure STATUS DESCRIPTION"
+}
+
+# CLI mode: dispatch like a Symfony command
+if [ "$ASSERT_STANDALONE" -eq 1 ]; then
+    cmd=${1:-}
+    shift || true
+
+    case "$cmd" in
+        eq)
+            # EXPECTED ACTUAL DESC
+            assert_eq "$1" "$2" "$3"
+            ;;
+        contains)
+            # HAYSTACK NEEDLE DESC
+            assert_contains "$1" "$2" "$3"
+            ;;
+        success)
+            # STATUS DESC
+            assert_success "$1" "$2"
+            ;;
+        failure)
+            # STATUS DESC
+            assert_failure "$1" "$2"
+            ;;
+        ""|-h|--help)
+            usage
+            exit 1
+            ;;
+        *)
+            ui show:error "Unknown assert command: $cmd"
+            usage
+            exit 1
+            ;;
+    esac
+fi

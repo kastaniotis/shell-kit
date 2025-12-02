@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+
+OS=$(uname -s 2>/dev/null || echo unknown)
+
+if [ "$OS" = "Darwin" ]; then
+    PLATFORM="macos"
+elif [ "$OS" = "Linux" ]; then
+    if grep -qi 'ubuntu' /etc/os-release 2>/dev/null; then
+        PLATFORM="ubuntu"
+    elif grep -qi 'debian' /etc/os-release 2>/dev/null; then
+        PLATFORM="debian"
+    else
+        PLATFORM="unknown"
+    fi
+else
+    PLATFORM="unknown"
+fi
+
+case "$PLATFORM" in
+    debian|ubuntu|macos)
+        echo "$PLATFORM"
+        exit 0
+        ;;
+    *)
+        echo "Unknown platform. Targets include only Debian, Ubuntu and macOS." >&2
+        exit 1
+        ;;
+esac

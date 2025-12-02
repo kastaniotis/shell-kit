@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+
+. "$HOME/.local/lib/test.sh"
+
+title "Testing validate_json tool"
+
+expect "Integer+Required should succeed"
+condition contains '"success":true'
+test "$(validate_json '123' --required --integer)"
+
+expect "Empty string should fail"
+condition contains "Value is required"
+test "$(validate_json '' --required)"
+
+expect "Non-integer should fail integer rule"
+condition contains "Value must be an integer"
+test "$(validate_json 'abc' --integer)"
+
+expect "yes should be valid boolean"
+condition contains '"success":true'
+test "$(validate_json 'yeas' --boolean)"
+
+summary
