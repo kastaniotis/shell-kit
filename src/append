@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+
+file=$1
+snippet=$2
+comment=$3
+
+# create file if missing
+touch "$file"
+# skip if already present
+if grep -Fq "$snippet" "$file"; then
+    exit 0
+fi
+echo "Adding PATH to $file"
+{
+    echo ""
+    echo "# $comment"
+    echo "$snippet"
+} >> "$file"

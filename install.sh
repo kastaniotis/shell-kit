@@ -12,47 +12,26 @@ mkdir -p "$LIB_DIR"
 # Snippet to append
 SNIPPET='export PATH="$HOME/.local/bin:$PATH"'
 
-append_once() {
-    file=$1
-
-    # create file if missing
-    touch "$file"
-
-    # skip if already present
-    if grep -Fq "$SNIPPET" "$file"; then
-        return
-    fi
-
-    echo "Adding PATH to $file"
-    {
-        echo ""
-        echo "# Added by installer"
-        echo "$SNIPPET"
-    } >> "$file"
-}
-
 # Always add to .profile
-append_once "$HOME/.profile"
+append "$HOME/.profile" "$SNIPPET" "Added by shell-kit Installer"
 
 # If macOS → also add to .zshrc
 if [ "$(uname)" = "Darwin" ]; then
-    append_once "$HOME/.zshrc"
+    append "$HOME/.zshrc"
 fi
 
 # Install executables
 for f in ./src/*; do
     [ -f "$f" ] || continue
-    echo "Installing $f → $BIN_DIR/"
+    ui show:info "Installing $f → $BIN_DIR/"
     install -m 755 "$f" "$BIN_DIR/"
 done
-
-
 
 # Install libraries (source-only)
 for f in ./lib/*; do
     [ -f "$f" ] || continue
-    echo "Installing library $f → $LIB_DIR/"
+    ui show:info "Installing library $f → $LIB_DIR/"
     install -m 644 "$f" "$LIB_DIR/"
 done
 
-echo "Done. Restart your shell."
+ui show:success "Shell-kit Installed. Please Restart your shell."

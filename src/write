@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+target="$2"
+content="$1"
+[ -z "$content" ] && { ui show:error "missing content"; exit 1; }
+[ -z "$target" ] && { ui show:error "missing target"; exit 1; }
+
+dir=$(dirname "$target")
+mkdir -p "$dir"
+if [ -f "$target" ]; then
+    ts=$(date +%Y%m%d-%H%M%S)
+    backup="${target}.bak.${ts}"
+    ui show:warning "Backing up existing file → $backup"
+    mv "$target" "$backup" || exit 1
+fi
+ui show:info "Writing new file → $target"
+printf "%s\n" "$content" > "$target" || exit 1
+chmod 600 "$target"
+ui show:success "File Written Successfully"
