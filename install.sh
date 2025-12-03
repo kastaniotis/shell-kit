@@ -23,14 +23,14 @@ fi
 # Install executables
 for f in ./src/*; do
     [ -f "$f" ] || continue
-    ui show:info "Installing $f → $BIN_DIR/"
+    echo "Installing $f → $BIN_DIR/"
     install -m 755 "$f" "$BIN_DIR/"
 done
 
 # Install libraries (source-only)
 for f in ./lib/*; do
     [ -f "$f" ] || continue
-    ui show:info "Installing library $f → $LIB_DIR/"
+    echo "Installing library $f → $LIB_DIR/"
     install -m 644 "$f" "$LIB_DIR/"
 done
 
