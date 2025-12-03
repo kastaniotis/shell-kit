@@ -49,6 +49,34 @@ case "$cmd" in
 
         gum choose --limit 1 --header "$header" "$@"
         ;;
+    show:input)
+        header="$1"
+        shift
+
+        [ -n "$header" ] || {
+            printf >&2 "Missing header.\n"
+            exit 1
+        }
+
+        # Optional placeholder
+        placeholder="${1:-}"
+
+        gum input \
+            --header "$header" \
+            ${placeholder:+--placeholder "$placeholder"}
+        ;;
+
+    show:textarea)
+        header="$1"
+        shift
+        [ -n "$header" ] || {
+            printf >&2 "Missing header.\n"
+            exit 1
+        }
+
+        gum write --header "$header"
+        ;;
+
 
     *)
         echo "Unknown UI command: $cmd" >&2

@@ -32,5 +32,5 @@ sudo apt update && sudo apt install gum
 
 ## shell-kit Installation
 ```
-curl -fsSL https://example.com/onlineinstaller.sh | sh -s https://github.com/kastaniotis/shell-kit.git
+❯  curl -fsSL https://raw.githubusercontent.com/kastaniotis/shell-kit/refs/heads/master/onlineinstaller.sh | sh -s https://github.com/kastaniotis/shell-kit
 ```

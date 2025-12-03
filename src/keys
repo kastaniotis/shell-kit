@@ -1,0 +1,181 @@
+#!/usr/bin/env sh
+
+ui show:title "Key Management"
+
+action="$(ui show:choice 'Choose what you want to do' 'List' 'Generate' 'Import' 'Recover Public Key')"
+
+pick_label() {
+    while :; do
+        label="$(ui show:input 'Please provide a descriptive label for your key' 'ansible...')"
+
+        # empty?
+        [ -n "$label" ] || continue
+
+        keyfile="$HOME/.ssh/id_${label}"
+
+        if [ -e "$keyfile" ] || [ -e "${keyfile}.pub" ]; then
+            ui show:error "Key id_${label} already exists. Choose another label."
+            continue
+        fi
+
+        printf '%s\n' "$label"
+        return 0
+    done
+}
+
+keyfile="$HOME/.ssh/id_${label}"
+
+case "$action" in
+    Generate)
+        label="$(pick_label)"
+        keyfile="$HOME/.ssh/id_${label}"
+
+        ui show:info "Generating new SSH key → id_${label}"
+
+        mkdir -p "$HOME/.ssh"
+        chmod 700 "$HOME/.ssh"
+
+        ssh-keygen -t ed25519 -f "$keyfile" -C "$label" -N ""
+
+        ui show:success "Key generated:"
+        ui show:info "  $keyfile"
+        ui show:info "  ${keyfile}.pub"
+        ;;
+
+    Import)
+        # 1. Ask for label, ensure id_<label> doesn't already exist
+        while :; do
+            label="$(ui show:input 'Please provide a descriptive label for your key' 'lightsail...')"
+            [ -n "$label" ] || continue
+
+            keyfile="$HOME/.ssh/id_${label}"
+
+            if [ -e "$keyfile" ] || [ -e "${keyfile}.pub" ]; then
+                ui show:error "Key id_${label} already exists. Choose another label."
+                continue
+            fi
+
+            break
+        done
+
+        # 2. Ask user to paste the private key (multiline)
+        key_content="$(
+            ui show:textarea "Paste your PRIVATE key" "-----BEGIN OPENSSH PRIVATE KEY-----"
+        )"
+
+        if [ -z "$key_content" ]; then
+            ui show:error "No key content provided."
+            exit 1
+        fi
+
+        # 3. Store private key
+        mkdir -p "$HOME/.ssh"
+        chmod 700 "$HOME/.ssh"
+
+        keyfile="$HOME/.ssh/id_${label}"
+        printf '%s\n' "$key_content" > "$keyfile"
+        chmod 600 "$keyfile"
+
+        # 4. Recover public key from private
+        pub="${keyfile}.pub"
+        if ssh-keygen -y -f "$keyfile" > "$pub"; then
+            chmod 644 "$pub"
+            ui show:success "Key imported:"
+            ui show:info "  $keyfile"
+            ui show:info "  $pub"
+        else
+            ui show:error "Failed to derive public key from $keyfile"
+            rm -f "$pub"
+            exit 1
+        fi
+        ;;
+
+    List)
+        dir="$HOME/.ssh"
+
+        if [ ! -d "$dir" ]; then
+            ui show:info "No ~/.ssh directory found."
+            exit 0
+        fi
+
+        found=0
+        for key in "$dir"/id_*; do
+            [ -f "$key" ] || continue
+
+            case "$key" in
+                *.pub)  # skip public keys
+                    continue
+                    ;;
+            esac
+
+            found=1
+            pub="${key}.pub"
+
+            if [ -f "$pub" ]; then
+                ui show:info "$(basename "$key")        (public key: present)"
+            else
+                ui show:info "$(basename "$key")        (public key: MISSING)"
+            fi
+        done
+
+        [ "$found" -eq 0 ] && ui show:info "No id_* keys found in ~/.ssh."
+        ;;
+
+
+    "Recover Public Key")
+        dir="$HOME/.ssh"
+
+        if [ ! -d "$dir" ]; then
+            ui show:error "No ~/.ssh directory found."
+            exit 1
+        fi
+
+        # Build candidate list: id_* and *.pem, private-only, no existing .pub
+        set -- "$dir"/id_* "$dir"/*.pem
+
+        missing=""
+        for key in "$@"; do
+            [ -f "$key" ] || continue
+
+            case "$key" in
+                *.pub) continue ;;  # skip public keys explicitly
+            esac
+
+            pub="${key}.pub"
+            [ -f "$pub" ] && continue  # skip if pub already exists
+
+            base=$(basename "$key")
+            missing="$missing $base"
+        done
+
+        if [ -z "$missing" ]; then
+            ui show:info "No private keys without public key found."
+            exit 0
+        fi
+
+        # Ask user which key to recover
+        # shellcheck disable=SC2086  # intentional splitting of $missing
+        selected="$(ui show:choice 'Select key to recover public key for' $missing)"
+
+        priv="$dir/$selected"
+        pub="${priv}.pub"
+
+        if [ -f "$pub" ]; then
+            ui show:error "Public key already exists: $pub"
+            exit 1
+        fi
+
+        ui show:info "Recovering public key → $pub"
+        if ssh-keygen -y -f "$priv" > "$pub"; then
+            chmod 644 "$pub"
+            ui show:success "Recovered public key:"
+            ui show:info "  $pub"
+        else
+            ui show:error "Failed to recover public key from $priv"
+            rm -f "$pub"
+            exit 1
+        fi
+        ;;
+
+
+esac
