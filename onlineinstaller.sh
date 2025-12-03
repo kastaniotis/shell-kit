@@ -9,32 +9,6 @@ if [ -z "$REPO_URL" ]; then
     exit 1
 fi
 
-# --- Detect platform ---
-OS="$(uname -s 2>/dev/null)"
-if [ "$OS" = "Darwin" ]; then
-    PKG_INSTALLER="brew install"
-elif [ "$OS" = "Linux" ] && command -v apt-get >/dev/null 2>&1; then
-    # --- Ensure Debian-ish ---
-    if ! command -v apt-get >/dev/null 2>&1; then
-        echo "Unsupported Linux platform"
-        exit 1
-    fi
-    PKG_INSTALLER="apt-get update && apt-get install -y"
-else
-    echo "Unsupported platform"
-    exit 1
-fi
-
-# --- Ensure git ---
-if ! command -v git >/dev/null 2>&1; then
-    sh -c "$PKG_INSTALLER git"
-fi
-
-# --- Ensure curl ---
-if ! command -v curl >/dev/null 2>&1; then
-    sh -c "$PKG_INSTALLER curl"
-fi
-
 # --- Create temp dir ---
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
@@ -55,4 +29,6 @@ if [ ! -x "$INSTALL_SH" ]; then
 fi
 
 # --- Run it ---
+cd "$TMPDIR/repo"
 "$INSTALL_SH"
+cd ~
